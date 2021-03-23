@@ -1,0 +1,145 @@
+---
+title: "Benchmarking FunctionalPlus and Range v3"
+subtitle: "*faster is better*"
+author: "Marc Paterno"
+institute: "Fermilab"
+date: "`r Sys.Date()`"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:10"
+---
+class: center, inverse, bottom
+background-image: url(https://upload.wikimedia.org/wikipedia/commons/0/04/SR-71_LASRE_cold_test.jpg)
+background-size: cover
+
+# FASTER IS BETTER
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+library(tidyverse)
+```
+
+---
+class: inverse, center, middle
+
+# Benchmark code to see what goes fastest
+
+## The only way to be sure
+
+---
+# The task
+
+For integers from 0 up to *count*, 
+calculate the sum of the lengths
+of the string representation
+of the result of multiplying each value by 3,
+but ignoring those values
+for which the multiplication gives an odd number result.
+
+
+
+---
+
+# Using explicit loops
+
+```c++
+int result = 0;
+for (int i = 0; i != count; ++i) {
+  auto const x = i * 3;
+  if (x % 2== 0) {
+    result += std::to_string(x).size();
+  }
+}
+```
+
+--
+
+* Can you figure out what this does?
+
+---
+# Using `range v3`
+
+```c++
+auto times_3 = [](int i){return 3 * i;};
+auto is_odd_int = [](int i){return i % 2 == 0;};
+auto as_string_length = [](int i){return std::to_string(i).size();};
+
+auto const result =
+  accumulate( views::ints(0, unreachable)
+            | views::take(count)
+            | views::transform(times_3)
+            | views::remove_if(is_odd_int)
+            | views::transform(as_string_length)
+            , 0);
+```
+
+---
+# Using `functionalplus`
+
+```c++
+auto times_3 = [](int i){return 3 * i;};
+auto is_odd_int = [](int i){return i % 2 == 0;};
+auto as_string_length = [](int i){return std::to_string(i).size();};
+
+
+auto const result = 
+  fwd::apply(numbers(0, count)
+           , fwd::transform(times_3)
+           , fwd::drop_if(is_odd_int)
+          , fwd::transform(as_string_length)
+          , fwd::sum());
+```
+
+---
+# Timing results
+
+```{r, echo=FALSE, include=FALSE}
+d <- readr::read_csv("benchmark-01.csv") %>%
+  dplyr::select(name, iterations, real_time, cpu_time, time_unit) %>%
+  tidyr::separate(name, into=c("alg", "size"), convert=TRUE)
+```
+
+```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
+ggplot(d, aes(size, real_time, color=alg)) +
+  geom_point() +
+  scale_x_log10(label = scales::comma) +
+  scale_y_log10(label = scales::comma) +
+  labs(x="Loop count",
+       y="Time (ns)")
+```
+
+---
+# Ratios
+
+```{r, echo=FALSE, include=FALSE}
+tmp <- filter(d, alg=="forloop") %>% select(size, t0=real_time)
+d <- left_join(d, tmp) %>%
+     mutate(ratio = real_time/t0)
+rm(tmp)
+```
+
+```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
+ggplot(d, aes(size, ratio, color=alg)) +
+  geom_point() +
+  scale_x_log10(label = scales::comma) +
+  scale_y_log10(label = scales::comma) +
+  labs(x="Loop count",
+       y="normalized time")  
+```
+
+---
+# For loop and `range`
+```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
+filter(d, alg != "fplus") %>%
+ggplot(aes(size, ratio, color=alg)) +
+  geom_point() +
+  scale_x_log10(label = scales::comma) +
+  scale_y_log10(label = scales::comma) +
+  labs(x="Loop count",
+       y="normalized time")
+```
