@@ -1,6 +1,6 @@
 ---
-title: "Benchmarking FunctionalPlus and Range v3"
-subtitle: "*faster is better*"
+title: "Benchmarking *range*-like libraries"
+subtitle: "*Which is better?*"
 author: "Marc Paterno"
 institute: "Fermilab"
 date: "`r Sys.Date()`"
@@ -25,23 +25,87 @@ library(tidyverse)
 ```
 
 ---
-class: inverse, center, middle
+class: center, inverse, bottom
+background-image: url(https://cdn.pixabay.com/photo/2016/11/25/07/00/isolated-1857732_960_720.png)
+background-size: cover
 
-# Benchmark code to see what goes fastest
+# CLEARER IS BETTER
+
+---
+
+class: inverse, center 
+
+# *Benchmark* code to see what goes fastest
 
 ## The only way to be sure
 
----
-# The task
+--
 
-For integers from 0 up to *count*, 
+## You can tell some things from the assembly language.
+
+--
+
+## But that only really works to show the assembly language is identical.
+
+--
+
+## Or nearly identical.
+
+--
+
+## And you need to be an expert.
+
+--
+
+## I'm not an expert.
+
+---
+
+class: inverse, center
+
+# Write code that is clear.
+
+--
+
+## It is more likely to be correct.
+
+--
+
+## It is easier to update for new functionality.
+
+--
+
+## It is less likely to be thrown away by your colleagues.
+
+
+---
+class: center, inverse, bottom
+background-image: url(https://get.pxhere.com/photo/light-number-red-color-machine-blue-toy-2014-illustration-robot-organ-365-screenshot-3652014-365the2014edition-redvsblue-themandus-mecha-284332.jpg)
+background-size: cover
+
+# THE CONTENDERS
+
+---
+
+class: middle
+
+* `range-v3` (the precursor to C++20's `<range>`)
+* Functional plus
+* pipes
+* rangeless
+
+---
+
+class: center, middle
+
+# The first task
+
+For integers from 0 up to *count*,
 calculate the sum of the lengths
 of the string representation
 of the result of multiplying each value by 3,
 but ignoring those values
 for which the multiplication gives an odd number result.
-
-
 
 ---
 
@@ -51,22 +115,18 @@ for which the multiplication gives an odd number result.
 int result = 0;
 for (int i = 0; i != count; ++i) {
   auto const x = i * 3;
-  if (x % 2== 0) {
+  if (x % 2 == 0) { // ignore odd == keep even
     result += std::to_string(x).size();
   }
 }
 ```
-
---
-
-* Can you figure out what this does?
 
 ---
 # Using `range v3`
 
 ```c++
 auto times_3 = [](int i){return 3 * i;};
-auto is_odd_int = [](int i){return i % 2 == 0;};
+auto is_odd_int = [](int i){return i % 2 != 0;};
 auto as_string_length = [](int i){return std::to_string(i).size();};
 
 auto const result =
@@ -83,32 +143,34 @@ auto const result =
 
 ```c++
 auto times_3 = [](int i){return 3 * i;};
-auto is_odd_int = [](int i){return i % 2 == 0;};
+auto is_odd_int = [](int i){return i % 2 != 0;};
 auto as_string_length = [](int i){return std::to_string(i).size();};
 
 
 auto const result = 
   fwd::apply(numbers(0, count)
-           , fwd::transform(times_3)
-           , fwd::drop_if(is_odd_int)
-          , fwd::transform(as_string_length)
-          , fwd::sum());
+            , fwd::transform(times_3)
+            , fwd::drop_if(is_odd_int)
+            , fwd::transform(as_string_length)
+            , fwd::sum());
 ```
 
 ---
 # Timing results
 
 ```{r, echo=FALSE, include=FALSE}
-d <- readr::read_csv("benchmark-01.csv") %>%
+d <- readr::read_csv("benchmark-01.csv", skip=9) %>%
   dplyr::select(name, iterations, real_time, cpu_time, time_unit) %>%
-  tidyr::separate(name, into=c("alg", "size"), convert=TRUE)
+  tidyr::separate(name, into=c("algorithm", "size"), convert=TRUE) %>%
+  mutate(algorithm = ordered(algorithm, levels=c("forloop", "range", "fplus")))
 ```
 
 ```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
-ggplot(d, aes(size, real_time, color=alg)) +
+ggplot(d, aes(size, real_time, color=algorithm)) +
   geom_point() +
   scale_x_log10(label = scales::comma) +
   scale_y_log10(label = scales::comma) +
+  scale_color_discrete(drop=FALSE) +
   labs(x="Loop count",
        y="Time (ns)")
 ```
@@ -117,17 +179,18 @@ ggplot(d, aes(size, real_time, color=alg)) +
 # Ratios
 
 ```{r, echo=FALSE, include=FALSE}
-tmp <- filter(d, alg=="forloop") %>% select(size, t0=real_time)
+tmp <- filter(d, algorithm=="forloop") %>% select(size, t0=real_time)
 d <- left_join(d, tmp) %>%
      mutate(ratio = real_time/t0)
 rm(tmp)
 ```
 
 ```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
-ggplot(d, aes(size, ratio, color=alg)) +
+ggplot(d, aes(size, ratio, color=algorithm)) +
   geom_point() +
   scale_x_log10(label = scales::comma) +
   scale_y_log10(label = scales::comma) +
+  scale_color_discrete(drop=FALSE) +
   labs(x="Loop count",
        y="normalized time")  
 ```
@@ -135,11 +198,12 @@ ggplot(d, aes(size, ratio, color=alg)) +
 ---
 # For loop and `range`
 ```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
-filter(d, alg != "fplus") %>%
-ggplot(aes(size, ratio, color=alg)) +
+filter(d, algorithm != "fplus") %>%
+ggplot(aes(size, ratio, color=algorithm)) +
   geom_point() +
   scale_x_log10(label = scales::comma) +
   scale_y_log10(label = scales::comma) +
+  scale_color_discrete(drop=FALSE) +
   labs(x="Loop count",
        y="normalized time")
 ```

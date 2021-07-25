@@ -11,5 +11,11 @@ link_directories(/usr/local/lib)
 add_executable(check-1 check-1.cc)
 add_executable(check-2 check-2.cc)
 
+add_executable(trivially-copyable-test trivially-copyable-test.cc)
+
 add_executable(benchmark-functionalplus-range benchmark-functionalplus-range.cc)
 target_link_libraries(benchmark-functionalplus-range PRIVATE benchmark)
+
+add_executable(intersperse-basic intersperse.cc)
+add_executable(intersperse-range intersperse.cc)
+target_compile_options(intersperse-range BEFORE PRIVATE "-DUSE_RNG=1")
