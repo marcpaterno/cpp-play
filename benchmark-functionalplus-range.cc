@@ -1,3 +1,8 @@
+// The comparisons done in this work may be dominated by the fact that the
+// creation of the range of numbers over which we iterate has to be generated
+// by the range-type algorithms; the range is never realized by the for loop
+// implementation.
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -9,40 +14,6 @@
 auto times_3 = [](int i) { return 3 * i; };
 auto is_odd_int = [](int i) { return i % 2 != 0; };
 auto as_string_length = [](int i) { return std::to_string(i).size(); };
-
-auto use_fplus = []() {
-  using namespace fplus;
-  int const count = 10;
-  auto const result = fwd::apply(numbers(0, count),
-                                 fwd::transform(times_3),
-                                 fwd::drop_if(is_odd_int),
-                                 fwd::transform(as_string_length),
-                                 fwd::sum());
-  ankerl::nanobench::doNotOptimizeAway(result);
-};
-
-auto use_range = []() {
-  using namespace ranges;
-  int const count = 10;
-  auto const result =
-    accumulate(views::ints(0, unreachable) | views::take(count) |
-                 views::transform(times_3) | views::remove_if(is_odd_int) |
-                 views::transform(as_string_length),
-               0);
-  ankerl::nanobench::doNotOptimizeAway(result);
-};
-
-auto use_forloop = []() {
-  int const count = 10;
-  int result = 0;
-  for (int i = 0; i != count; ++i) {
-    auto const x = i * 3;
-    if (x % 2 != 0) {
-      result += std::to_string(x).size();
-    }
-  }
-  ankerl::nanobench::doNotOptimizeAway(result);
-};
 
 template <typename FCN>
 void
@@ -61,9 +32,41 @@ main()
     sz *= 4;
   }
   ankerl::nanobench::Bench b;
-  b.title("benchmark-functionalplus-range").minEpochIterations(1000*1000);
+  b.title("benchmark-functionalplus-range").minEpochIterations(10 * 1000);
 
   for (auto size : sizes) {
+
+    auto use_fplus = [size]() {
+      using namespace fplus;
+      auto const result = fwd::apply(numbers(0, size),
+                                     fwd::transform(times_3),
+                                     fwd::drop_if(is_odd_int),
+                                     fwd::transform(as_string_length),
+                                     fwd::sum());
+      ankerl::nanobench::doNotOptimizeAway(result);
+    };
+
+    auto use_range = [size]() {
+      using namespace ranges;
+      auto const result =
+        accumulate(views::ints(0, unreachable) | views::take(size) |
+                     views::transform(times_3) | views::remove_if(is_odd_int) |
+                     views::transform(as_string_length),
+                   0);
+      ankerl::nanobench::doNotOptimizeAway(result);
+    };
+
+    auto use_forloop = [size]() {
+      int result = 0;
+      for (int i = 0; i != size; ++i) {
+        auto const x = i * 3;
+        if (x % 2 != 0) {
+          result += std::to_string(x).size();
+        }
+      }
+      ankerl::nanobench::doNotOptimizeAway(result);
+    };
+
     std::string forloop_name = "forloop_" + std::to_string(size);
     std::string fplus_name = "fplus_" + std::to_string(size);
     std::string range_name = "range_" + std::to_string(size);
