@@ -176,6 +176,14 @@ ggplot(d, aes(size, real_time, color=algorithm)) +
 ```
 
 ---
+
+# Tables!
+
+```{r}
+d %>% kableExtra::kable()
+```
+
+---
 # Ratios
 
 ```{r, echo=FALSE, include=FALSE}
