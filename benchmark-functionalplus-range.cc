@@ -32,12 +32,16 @@ main()
     sz *= 4;
   }
   ankerl::nanobench::Bench b;
-  b.title("benchmark-functionalplus-range").minEpochIterations(10 * 1000);
+  b.title("benchmark-functionalplus-range");
+  int const PRODUCT = 64 * 1000;
+  auto* pb = &b;
 
   for (auto size : sizes) {
+    int const nrep = PRODUCT / size;
 
-    auto use_fplus = [size]() {
+    auto use_fplus = [size, nrep, pb]() {
       using namespace fplus;
+      pb->minEpochIterations(nrep);
       auto const result = fwd::apply(numbers(0, size),
                                      fwd::transform(times_3),
                                      fwd::drop_if(is_odd_int),
@@ -46,8 +50,9 @@ main()
       ankerl::nanobench::doNotOptimizeAway(result);
     };
 
-    auto use_range = [size]() {
+    auto use_range = [size, nrep, pb]() {
       using namespace ranges;
+      pb->minEpochIterations(nrep);
       auto const result =
         accumulate(views::ints(0, unreachable) | views::take(size) |
                      views::transform(times_3) | views::remove_if(is_odd_int) |
@@ -56,7 +61,8 @@ main()
       ankerl::nanobench::doNotOptimizeAway(result);
     };
 
-    auto use_forloop = [size]() {
+    auto use_forloop = [size, nrep, pb]() {
+      pb->minEpochIterations(nrep * 100);
       int result = 0;
       for (int i = 0; i != size; ++i) {
         auto const x = i * 3;

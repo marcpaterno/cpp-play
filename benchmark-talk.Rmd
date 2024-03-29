@@ -22,6 +22,8 @@ background-size: cover
 ```{r setup, include=FALSE}
 options(htmltools.dir.version = FALSE)
 library(tidyverse)
+library(mfptools)
+source("functions.R")
 ```
 
 ---
@@ -159,14 +161,12 @@ auto const result =
 # Timing results
 
 ```{r, echo=FALSE, include=FALSE}
-d <- readr::read_csv("benchmark-01.csv", skip=9) %>%
-  dplyr::select(name, iterations, real_time, cpu_time, time_unit) %>%
-  tidyr::separate(name, into=c("algorithm", "size"), convert=TRUE) %>%
-  mutate(algorithm = ordered(algorithm, levels=c("forloop", "range", "fplus")))
+d <- mfptools::read_benchmark("benchmark-01.txt") |>
+  adjust_raw_df()
 ```
 
 ```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
-ggplot(d, aes(size, real_time, color=algorithm)) +
+ggplot(d, aes(size, time, color=fcn)) +
   geom_point() +
   scale_x_log10(label = scales::comma) +
   scale_y_log10(label = scales::comma) +
@@ -187,14 +187,14 @@ d %>% kableExtra::kable()
 # Ratios
 
 ```{r, echo=FALSE, include=FALSE}
-tmp <- filter(d, algorithm=="forloop") %>% select(size, t0=real_time)
+tmp <- filter(d, fcn=="forloop") %>% select(size, t0=time)
 d <- left_join(d, tmp) %>%
-     mutate(ratio = real_time/t0)
+     mutate(ratio = time/t0)
 rm(tmp)
 ```
 
 ```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
-ggplot(d, aes(size, ratio, color=algorithm)) +
+ggplot(d, aes(size, ratio, color=fcn)) +
   geom_point() +
   scale_x_log10(label = scales::comma) +
   scale_y_log10(label = scales::comma) +
@@ -206,8 +206,8 @@ ggplot(d, aes(size, ratio, color=algorithm)) +
 ---
 # For loop and `range`
 ```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
-filter(d, algorithm != "fplus") %>%
-ggplot(aes(size, ratio, color=algorithm)) +
+filter(d, fcn != "fplus") %>%
+ggplot(aes(size, ratio, color=fcn)) +
   geom_point() +
   scale_x_log10(label = scales::comma) +
   scale_y_log10(label = scales::comma) +
