@@ -1,35 +1,13 @@
 ---
 title: "Benchmarking range-like libraries"
-subtitle: "Which is better?"
-author: "Marc Paterno"
-institute: "Fermi National Accelerator Laboratory"
-date: "`r Sys.Date()`"
-date-format: long
-format:
-  revealjs:
-    height: 1080
-    width: 1920
-    standalone: true
-    footer: "{{< meta title >}} | {{< meta author >}}"
-    highlight-style: arrow
-    include-after-body: clean_title_slide.html
-    margin: 0.05
-    max-scale: 4.0
-    min-scale: 0.05
-    #navigation-mode: linear
-    slide-number: true
-    theme: [serif, custom.scss]
-    transition: fade
-    background-transition: fade
-    template-partials:
-      - title-slide.html
+format: revealjs
 ---
 
 class: center, inverse, bottom
 background-image: url(https://upload.wikimedia.org/wikipedia/commons/0/04/SR-71_LASRE_cold_test.jpg)
 background-size: cover
 
-# FASTER IS BETTER
+## FASTER IS BETTER
 
 ```{r setup, include=FALSE}
 options(htmltools.dir.version = FALSE)
@@ -38,68 +16,52 @@ library(mfptools)
 source("functions.R")
 ```
 
----
 class: center, inverse, bottom
 background-image: url(https://cdn.pixabay.com/photo/2016/11/25/07/00/isolated-1857732_960_720.png)
 background-size: cover
 
-# CLEARER IS BETTER
+## CLEARER IS BETTER
 
----
 
 class: inverse, center 
 
-# *Benchmark* code to see what goes fastest
+## *Benchmark* code to see what goes fastest
 
-## The only way to be sure
+### The only way to be sure
 
---
 
-## You can tell some things from the assembly language.
+### You can tell some things from the assembly language.
 
---
 
-## But that only really works to show the assembly language is identical.
+### But that only really works to show the assembly language is identical.
 
---
 
-## Or nearly identical.
+### Or nearly identical.
 
---
 
-## And you need to be an expert.
+### And you need to be an expert.
 
---
 
-## I'm not an expert.
-
----
+### I'm not an expert.
 
 class: inverse, center
 
-# Write code that is clear.
-
---
-
-## It is more likely to be correct.
-
---
-
-## It is easier to update for new functionality.
-
---
-
-## It is less likely to be thrown away by your colleagues.
+## Write code that is clear.
 
 
----
+### It is more likely to be correct.
+
+
+
+### It is less likely to be thrown away by your colleagues.
+
+
 class: center, inverse, bottom
 background-image: url(https://get.pxhere.com/photo/light-number-red-color-machine-blue-toy-2014-illustration-robot-organ-365-screenshot-3652014-365the2014edition-redvsblue-themandus-mecha-284332.jpg)
 background-size: cover
 
-# THE CONTENDERS
+## THE CONTENDERS
 
----
 
 class: middle
 
@@ -108,11 +70,10 @@ class: middle
 * pipes
 * rangeless
 
----
 
 class: center, middle
 
-# The first task
+## The first task
 
 For integers from 0 up to *count*,
 calculate the sum of the lengths
@@ -121,9 +82,8 @@ of the result of multiplying each value by 3,
 but ignoring those values
 for which the multiplication gives an odd number result.
 
----
 
-# Using explicit loops
+## Using explicit loops
 
 ```c++
 int result = 0;
@@ -135,8 +95,7 @@ for (int i = 0; i != count; ++i) {
 }
 ```
 
----
-# Using `range v3`
+## Using `range v3`
 
 ```c++
 auto times_3 = [](int i){return 3 * i;};
@@ -152,8 +111,7 @@ auto const result =
             , 0);
 ```
 
----
-# Using `functionalplus`
+## Using `functionalplus`
 
 ```c++
 auto times_3 = [](int i){return 3 * i;};
@@ -169,11 +127,10 @@ auto const result =
             , fwd::sum());
 ```
 
----
-# Timing results
+## Timing results
 
 ```{r, echo=FALSE, include=FALSE}
-d <- mfptools::read_benchmark("benchmark-01.txt") |>
+d <- mfptools::read_benchmark("benchmark-02.txt") |>
   adjust_raw_df()
 ```
 
@@ -187,16 +144,7 @@ ggplot(d, aes(size, time, color=fcn)) +
        y="Time (ns)")
 ```
 
----
-
-# Tables!
-
-```{r}
-d %>% kableExtra::kable()
-```
-
----
-# Ratios
+## Ratios
 
 ```{r, echo=FALSE, include=FALSE}
 tmp <- filter(d, fcn=="forloop") %>% select(size, t0=time)
@@ -215,15 +163,61 @@ ggplot(d, aes(size, ratio, color=fcn)) +
        y="normalized time")  
 ```
 
----
-# For loop and `range`
+## Excluding *fplus*
+
 ```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
-filter(d, fcn != "fplus") %>%
-ggplot(aes(size, ratio, color=fcn)) +
+d |>
+  filter(fcn %nin% c("fplus")) |>
+  ggplot(aes(size, time, color=fcn)) +
   geom_point() +
   scale_x_log10(label = scales::comma) +
   scale_y_log10(label = scales::comma) +
   scale_color_discrete(drop=FALSE) +
   labs(x="Loop count",
-       y="normalized time")
+       y="Time (ns)")
 ```
+
+
+## More ratios
+
+```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
+d |>
+  filter(fcn %nin% c("fplus")) |>
+  ggplot(aes(size, ratio, color=fcn)) +
+  geom_point() +
+  scale_x_log10(label = scales::comma) +
+  scale_y_log10(label = scales::comma) +
+  scale_color_discrete(drop=FALSE) +
+  labs(x="Loop count",
+       y="normalized time")  
+```
+
+## Also excluding *range*
+
+```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
+d |>
+  filter(fcn %nin% c("fplus", "range")) |>
+  ggplot(aes(size, time, color=fcn)) +
+  geom_point() +
+  scale_x_log10(label = scales::comma) +
+  scale_y_log10(label = scales::comma) +
+  scale_color_discrete(drop=FALSE) +
+  labs(x="Loop count",
+       y="Time (ns)")
+```
+
+
+## Final ratios
+
+```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
+d |>
+  filter(fcn %nin% c("fplus", "range")) |>
+  ggplot(aes(size, ratio, color=fcn)) +
+  geom_point() +
+  scale_x_log10(label = scales::comma) +
+  scale_y_log10(label = scales::comma) +
+  scale_color_discrete(drop=FALSE) +
+  labs(x="Loop count",
+       y="normalized time")  
+```
+

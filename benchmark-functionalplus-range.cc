@@ -7,9 +7,11 @@
 #include <string>
 #include <vector>
 
+#include "flux.hpp"
 #include "fplus/fplus.hpp"
-#include "nanobench.h"
 #include "range/v3/all.hpp"
+
+#include "nanobench.h"
 
 auto times_3 = [](int i) { return 3 * i; };
 auto is_odd_int = [](int i) { return i % 2 != 0; };
@@ -19,7 +21,7 @@ template <typename FCN>
 void
 run_bench(FCN&& func, ankerl::nanobench::Bench* bench, std::string const& name)
 {
-  bench->run(name, func);
+  bench->run(name, (func));
 }
 
 int
@@ -33,7 +35,7 @@ main()
   }
   ankerl::nanobench::Bench b;
   b.title("benchmark-functionalplus-range");
-  int const PRODUCT = 64 * 1000;
+  int const PRODUCT = 100 * 1000;
   auto* pb = &b;
 
   for (auto size : sizes) {
@@ -63,7 +65,7 @@ main()
 
     auto use_forloop = [size, nrep, pb]() {
       pb->minEpochIterations(nrep * 100);
-      int result = 0;
+      std::size_t result = 0;
       for (int i = 0; i != size; ++i) {
         auto const x = i * 3;
         if (x % 2 != 0) {
@@ -73,12 +75,26 @@ main()
       ankerl::nanobench::doNotOptimizeAway(result);
     };
 
+    auto use_flux = [size, nrep, pb]() {
+      pb->minEpochIterations(nrep);
+      std::size_t const result =
+        flux::ints()
+          .take(size)
+          .map([](int i) { return 3 * i; })
+          .filter(flux::pred::even)
+          .map([](int i) { return std::to_string(i).size(); })
+          .sum();
+      ankerl::nanobench::doNotOptimizeAway(result);
+    };
+
     std::string forloop_name = "forloop_" + std::to_string(size);
     std::string fplus_name = "fplus_" + std::to_string(size);
     std::string range_name = "range_" + std::to_string(size);
+    std::string flux_name = "flux_" + std::to_string(size);
 
     run_bench(use_forloop, &b, forloop_name.c_str());
     run_bench(use_fplus, &b, fplus_name.c_str());
     run_bench(use_range, &b, range_name.c_str());
+    run_bench(std::move(use_flux), &b, flux_name.c_str());
   }
 }

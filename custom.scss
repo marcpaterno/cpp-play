@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Fire+Mono&family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900');
+/*-- scss:defaults --*/
+$font-family-sans-serif: "Open Sans", Helvetica, sans-serif;
+$font-family-monospace: Monaco, "Lucida Console", monospace;
+
+$presentation-title-slide-text-align: left;
+
+$theme-nalblue:                #004c97;
+$theme-nalbluelight:           #41b6e6;
+$theme-nalbluedark:            #002855;
+$theme-marlinbluelight:        #99d6ea;
+$theme-marlinblue:             #00b5e2;
+$theme-nalgreenlight:          #78be20;
+$theme-nalgreen:               #4c8c2b;
+$theme-nalgreendark:           #36573b;
+$theme-masseyfergusonredlight: #af272f;
+$theme-masseyfergusonred:      #8a2a2b;
+$theme-masseyfergusonreddark:  #643335;
+$theme-orangelight:            #f68d2e;
+$theme-orange:                 #cb6015;
+$theme-orangedark:             #b94700;
+$theme-prariegoldlight:        #f5e1a4;
+$theme-prariegold:             #fed141;
+$theme-prariegolddark:         #eaaa00;
+$theme-gray45:                 #a7a8aa;
+$theme-gray75:                 #63666a;
+$theme-richblack:              #000000;
+$theme-white:                  #ffffff;
+
+$body-bg: $theme-white;
+$presentation-font-size-root: 32px;
+$body-color: $theme-gray75;
+$link-color: $theme-nalgreen;
+$presentation-heading-color: $theme-nalblue;
+$code-color: $theme-nalblue;
+
+
+/*-- scss:rules --*/
+.reveal em {
+  /*-- formatted with *text* --*/
+}
+
+.reveal ul {
+  /*-- bulleted lists --*/
+  /*-- See https://developer.mozilla.org/en-US/docs/Web/CSS/list-style
+  for details --*/
+}
+
+.reveal strong {
+  /*-- formatted with **text** --*/
+  font-weight: bolder;
+  color: $theme-masseyfergusonred;
+}
+
+.sourceCode {
+  border-style: solid;
+  border-width: 1px;
+  border-color: $theme-nalbluedark;
+}
+       
+.cell {
+  /*-- Code blocks produce divs with class cell --*/
+}
