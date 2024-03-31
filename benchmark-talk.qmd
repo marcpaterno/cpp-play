@@ -1,13 +1,22 @@
 ---
 title: "Benchmarking range-like libraries"
-format: revealjs
+author: Marc Paterno
+date: today
+format:
+  revealjs:
+    height: 1080
+    width: 1920
+    footer: "{{< meta title >}} | {{< meta author >}}"
+    slide-number: true
+    template-partials:
+      - title-slide.html
+    title-slide-attributes:
+      data-background-color: darkblue
+
 ---
 
-class: center, inverse, bottom
-background-image: url(https://upload.wikimedia.org/wikipedia/commons/0/04/SR-71_LASRE_cold_test.jpg)
-background-size: cover
+## {background-image="https://upload.wikimedia.org/wikipedia/commons/0/04/SR-71_LASRE_cold_test.jpg"}
 
-## FASTER IS BETTER
 
 ```{r setup, include=FALSE}
 options(htmltools.dir.version = FALSE)
@@ -16,62 +25,58 @@ library(mfptools)
 source("functions.R")
 ```
 
-class: center, inverse, bottom
-background-image: url(https://cdn.pixabay.com/photo/2016/11/25/07/00/isolated-1857732_960_720.png)
-background-size: cover
+::: {style="text-align: center; color: white; font-size: 4em;"}
+Faster is better
+:::
 
-## CLEARER IS BETTER
+## {background-image="https://cdn.pixabay.com/photo/2016/11/25/07/00/isolated-1857732_960_720.png"}
 
-
-class: inverse, center 
+::: {style="text-align: center; color: white; -webkit-text-stroke-color: black; -webkit-text-stroke-width: 2pt; font-size: 4em;"}
+Clearer is better
+:::
 
 ## *Benchmark* code to see what goes fastest
 
-### The only way to be sure
+:::{.incremental}
+* The only way to be sure.
+* You can tell some things from the assembly language.
+* But that only really works to show the assembly language is identical.
+* Or nearly identical.
+* And you need to be an expert.
+* I'm not an expert.
+:::
+
+## Write code that is clear
+
+:::{.incremental}
+* It is more likely to be correct.
+* It is less likely to be thrown away by your colleagues.
+* But clear is a subjective term.
+* You need to take into account what most of your colleages view as clear.
+:::
+
+## {background-image="robots.jpg"}
+
+::: {style="text-align: center; color: white; font-size: 4em;"}
+The contenders
+:::
 
 
-### You can tell some things from the assembly language.
+## Libraries for higher-order algorithms
 
+* Libraries come and go.
+* I did not investigate libraries that "looked good" but which have been dormant for development for several years.
 
-### But that only really works to show the assembly language is identical.
+## Dormant libraries
 
+* pipes (https://github.com/joboccara/pipes)
+* rangeless (https://github.com/ast-al/rangeless)
 
-### Or nearly identical.
+## Libraries I benchmarked
 
-
-### And you need to be an expert.
-
-
-### I'm not an expert.
-
-class: inverse, center
-
-## Write code that is clear.
-
-
-### It is more likely to be correct.
-
-
-
-### It is less likely to be thrown away by your colleagues.
-
-
-class: center, inverse, bottom
-background-image: url(https://get.pxhere.com/photo/light-number-red-color-machine-blue-toy-2014-illustration-robot-organ-365-screenshot-3652014-365the2014edition-redvsblue-themandus-mecha-284332.jpg)
-background-size: cover
-
-## THE CONTENDERS
-
-
-class: middle
-
-* `range-v3` (the precursor to C++20's `<range>`)
-* Functional plus
-* pipes
-* rangeless
-
-
-class: center, middle
+* range-v3 (https://github.com/ericniebler/range-v3.git)
+* functional plus (https://github.com/Dobiasd/FunctionalPlus.git)
+* flux (https://github.com/tcbrindle/flux)
 
 ## The first task
 
@@ -82,20 +87,27 @@ of the result of multiplying each value by 3,
 but ignoring those values
 for which the multiplication gives an odd number result.
 
+* This may seem like a strange task, but it requires transforming data types into temporaries that are short-lived in ways that the optimizer can't do away with.
+* The transformations themselves are not very time-consuming.
+* It thus may serve as a "proxy" of sorts for other complex algorithms, suited for measuring library "abstraction costs".
+
 
 ## Using explicit loops
 
 ```c++
-int result = 0;
+int result = 0;        // we can not make the result immutable
 for (int i = 0; i != count; ++i) {
   auto const x = i * 3;
-  if (x % 2 == 0) { // ignore odd == keep even
+  if (x % 2 == 0) {    // ignore odd == keep even
     result += std::to_string(x).size();
   }
 }
 ```
 
-## Using `range v3`
+* This does not seem *hard* to read, but it is also not self-describing.
+* One must look at each part of the algorithm to deduce what is being done.
+
+## Using `range-v3`
 
 ```c++
 auto times_3 = [](int i){return 3 * i;};
@@ -110,6 +122,9 @@ auto const result =
             | views::transform(as_string_length)
             , 0);
 ```
+* The pipe notation, combined with *verbs* naming actions, helps clarity.
+* The *named lambda* idiom helps make the manipulations more clear.
+* The error messages when something goes wrong are horrid.
 
 ## Using `functionalplus`
 
@@ -117,7 +132,6 @@ auto const result =
 auto times_3 = [](int i){return 3 * i;};
 auto is_odd_int = [](int i){return i % 2 != 0;};
 auto as_string_length = [](int i){return std::to_string(i).size();};
-
 
 auto const result = 
   fwd::apply(numbers(0, count)
@@ -127,10 +141,33 @@ auto const result =
             , fwd::sum());
 ```
 
+* The sequence of operations using *verbs* naming actions is similar to `range-v3`.
+* The `sum` comes at the end of the pipeline, which seems more natural to me.
+* The generation of the range of values to iterate through is more concise.
+
+## Using `flux`
+
+```c++
+auto times_3 = [](int i){return 3 * i;};
+auto is_odd_int = [](int i){return i % 2 != 0;};
+auto as_string_length = [](int i){return std::to_string(i).size();};
+
+std::size_t const result =
+    flux::ints()
+        .take(size)
+        .map(times_3)
+        .filter(flux::pred::even)
+        .map(as_string_length)
+        .sum();
+```
+
+* *Fluent* syntax somewhat like the pipes of `range-v3`, but currently better supported by IDEs and code completion.
+* Major benefit is not visible: `flux` solves the problem of *dangling iterators* present in most (all?) other range libraries, and in direct use of the STL iterator model, but using *cursors* rather than *iterators*. It has defined the *cursor* model so that it is *impossible to use* a dangling cursor.
+
 ## Timing results
 
 ```{r, echo=FALSE, include=FALSE}
-d <- mfptools::read_benchmark("benchmark-02.txt") |>
+d <- bind_rows(m2 = read_benchmark("apple-clang-m2.txt")) |>
   adjust_raw_df()
 ```
 
@@ -221,3 +258,48 @@ d |>
        y="normalized time")  
 ```
 
+## The second task: iteration over collections
+
+* In the previous example, we were iterating over a range of numbers.
+* Some of the libraries are not at all optimized for this purpose, and must generate a container of values to iterate over.
+* We can remove the generation of the sequence over which we iterate from the timing, and compare results again.
+* We do all the same operations.
+
+
+## Timing results
+
+```{r, echo=FALSE, include=FALSE}
+d2 <- bind_rows(m2 = read_benchmark("apple-clang-m2-no-generation.txt")) |>
+  adjust_raw_df()
+```
+
+```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
+ggplot(d2, aes(size, time, color=fcn)) +
+  geom_point() +
+  scale_x_log10(label = scales::comma) +
+  scale_y_log10(label = scales::comma) +
+  scale_color_discrete(drop=FALSE) +
+  labs(x="Loop count",
+       y="Time (ns)")
+```
+
+
+## Ratios
+
+```{r, echo=FALSE, include=FALSE}
+tmp <- filter(d2, fcn=="forloop") %>% select(size, t0=time)
+d2 <- left_join(d2, tmp) %>%
+     mutate(ratio = time/t0)
+rm(tmp)
+```
+
+
+```{r, echo=FALSE, out.width="90%", fig.asp=1/2, fig.retina=2, fig.align='center'}
+ggplot(d2, aes(size, ratio, color=fcn)) +
+  geom_point() +
+  scale_x_log10(label = scales::comma) +
+  scale_y_log10(label = scales::comma) +
+  scale_color_discrete(drop=FALSE) +
+  labs(x="Loop count",
+       y="normalized time")  
+```

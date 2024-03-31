@@ -47,6 +47,11 @@ add_executable(benchmark-functionalplus-range benchmark-functionalplus-range.cc)
 target_include_directories(benchmark-functionalplus-range PRIVATE ${functionalplus_SOURCE_DIR}/include)
 target_link_libraries(benchmark-functionalplus-range PRIVATE nanobench range-v3::range-v3 flux::flux)
 
+add_executable(benchmark-no-generation benchmark-no-generation.cc)
+target_include_directories(benchmark-no-generation PRIVATE ${functionalplus_SOURCE_DIR}/include)
+target_link_libraries(benchmark-no-generation PRIVATE nanobench range-v3::range-v3 flux::flux)
+
+
 add_executable(intersperse-basic intersperse.cc)
 target_link_libraries(intersperse-basic PRIVATE range-v3::range-v3)
 

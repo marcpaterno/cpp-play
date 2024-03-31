@@ -1,9 +1,11 @@
 {
-    "cmake.configureArgs": [
-        "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-        "-DBUILD_SHARED_LIBS=ON",
-        "-DENABLE_STATIC=OFF",
-        "-G Ninja"
-    ]
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "cmake.useCMakePresets": "auto",
+    "cmake.configureSettings": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": "/opt/homebrew/opt/llvm/bin/clang++",
+        "CMAKE_C_COMPILER": "/opt/homebrew/opt/llvm/bin/clang",
+        "CMAKE_BUILD_SHARED_LIBS": "Off",
+        "CMAKE_ENABLE_STATIC": "Off"
+    }
 }

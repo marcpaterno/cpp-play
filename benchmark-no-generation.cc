@@ -1,7 +1,5 @@
-// The comparisons done in this work may be dominated by the fact that the
-// creation of the range of numbers over which we iterate has to be generated
-// by the range-type algorithms; the range is never realized by the for loop
-// implementation.
+// This benchmark pre-generated the ranges to be processed to avoid the cost
+// of generating them.
 
 #include <iostream>
 #include <string>
@@ -21,7 +19,7 @@ template <typename FCN>
 void
 run_bench(FCN&& func, ankerl::nanobench::Bench* bench, std::string const& name)
 {
-  bench->run(name, (func));
+  bench->run(name, func);
 }
 
 int
@@ -40,11 +38,15 @@ main()
 
   for (auto size : sizes) {
     int const nrep = PRODUCT / size;
+    std::vector<int> numbers;
+    for (int i = 0; i != size; ++i) {
+      numbers.push_back(i);
+    }
 
-    auto use_fplus = [size, nrep, pb]() {
+    auto use_fplus = [size, nrep, pb, &numbers]() {
       using namespace fplus;
       pb->minEpochIterations(nrep);
-      auto const result = fwd::apply(numbers(0, size),
+      auto const result = fwd::apply(numbers,
                                      fwd::transform(times_3),
                                      fwd::drop_if(is_odd_int),
                                      fwd::transform(as_string_length),
@@ -52,22 +54,23 @@ main()
       ankerl::nanobench::doNotOptimizeAway(result);
     };
 
-    auto use_range = [size, nrep, pb]() {
+    auto use_range = [size, nrep, pb, &numbers]() {
       using namespace ranges;
       pb->minEpochIterations(nrep);
       auto const result =
-        accumulate(views::ints(0, unreachable) | views::take(size) |
-                     views::transform(times_3) | views::remove_if(is_odd_int) |
-                     views::transform(as_string_length),
-                   0);
+        accumulate(numbers
+                  | views::transform(times_3)
+                  | views::remove_if(is_odd_int)
+                  | views::transform(as_string_length),
+                  0);
       ankerl::nanobench::doNotOptimizeAway(result);
     };
 
-    auto use_forloop = [size, nrep, pb]() {
+    auto use_forloop = [size, nrep, pb, &numbers]() {
       pb->minEpochIterations(nrep * 100);
       std::size_t result = 0;
       for (int i = 0; i != size; ++i) {
-        auto const x = i * 3;
+        auto const x = numbers[i] * 3;
         if (x % 2 != 0) {
           result += std::to_string(x).size();
         }
@@ -75,10 +78,10 @@ main()
       ankerl::nanobench::doNotOptimizeAway(result);
     };
 
-    auto use_flux = [size, nrep, pb]() {
+    auto use_flux = [size, nrep, pb, &numbers]() {
       pb->minEpochIterations(nrep);
       std::size_t const result =
-        flux::ints()
+        flux::ref(numbers)
           .take(size)
           .map(times_3)
           .filter(flux::pred::even)
