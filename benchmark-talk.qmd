@@ -88,6 +88,9 @@ The contenders
 
 * pipes (https://github.com/joboccara/pipes)
 * rangeless (https://github.com/ast-al/rangeless)
+* rx-ranges (https://github.com/simonask/rx-ranges)
+
+Each of these has interesting features, but all seem to have been abandoned.
 
 ## Libraries I benchmarked
 
